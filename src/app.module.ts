@@ -6,7 +6,7 @@ import { APP_FILTER, APP_INTERCEPTOR, APP_PIPE } from "@nestjs/core";
 import { HttpExceptionFilter } from "./common/exceptions/http-exception.filter";
 import { ValidationPipe } from "@pipe/validation.pipe";
 import { TransformInterceptor } from "@interceptor/transform.interceptor";
-import { AuthenticationModule } from './authentication/authentication.module';
+import { AuthenticationModule } from "@authentication/authentication.module";
 
 @Module({
   imports: [

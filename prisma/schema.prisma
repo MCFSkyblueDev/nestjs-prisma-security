@@ -14,7 +14,15 @@ datasource db {
 }
 
 model User {
-  id    Int     @id @default(autoincrement())
-  email String  @unique
-  name  String?
+  id       Int     @id @default(autoincrement())
+  type     String
+  account  String  @unique
+  username String
+  avatar   String
 }
+
+
+
+// npx prisma migrate dev --name init
+// npx prisma migrate reset
+// npx prisma migrate deploy

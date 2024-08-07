@@ -40,9 +40,13 @@ export class UserService {
   }
 
   async createUser(data: Prisma.UserCreateInput): Promise<User> {
-    return this.prisma.user.create({
-      data
-    });
+    try {
+      return this.prisma.user.create({
+        data
+      });
+    } catch (error) {
+      throw new InternalServerErrorException(error);
+    }
   }
 
   async updateUser(params: {
@@ -62,9 +66,25 @@ export class UserService {
     });
   }
 
-
-  async getTotalRecords(): Promise<number> {
-    return this.prisma.user.count();
+  async userLogin(data: Prisma.UserCreateInput): Promise<User> {
+    let user: User;
+    try {
+      user = await this.prisma.user.findUnique({ where: { account: data.account } });
+    } catch (error) {
+      throw new InternalServerErrorException(error);
+    }
+    if (user) return user;
+    return await this.createUser(data);
   }
+
+  async checkUserExistent(account: string): Promise<boolean> {
+    try {
+      const user: Prisma.UserCreateInput = await this.prisma.user.findUnique({ where: { account } });
+      return !!user;
+    } catch (error) {
+      throw new InternalServerErrorException(error);
+    }
+  }
+
 
 }

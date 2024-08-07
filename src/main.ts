@@ -1,8 +1,8 @@
 import { NestFactory } from "@nestjs/core";
 import { AppModule } from "./app.module";
 import { SwaggerModule, DocumentBuilder } from "@nestjs/swagger";
-// import * as session from "express-session";
-// import * as passport from "passport";
+import * as session from "express-session";
+import * as passport from "passport";
 
 
 async function bootstrap() {
@@ -23,6 +23,17 @@ async function bootstrap() {
     allowedHeaders: 'Content-Type, Authorization',
     credentials: true,
   });
+
+  // app.use(session({
+  //   secret: "secretfdfdfdfdfdfdfdfgrthtrhgdsf",
+  //   saveUninitialized: false,
+  //   resave: false,
+  //   cookie: {
+  //     maxAge: 1000 * 60
+  //   }
+  // }));
+  // app.use(passport.initialize());
+  // app.use(passport.session());
 
   await app.listen(8000);
 }

@@ -10,8 +10,8 @@ export class FacebookStrategy extends PassportStrategy(Strategy, "facebook") {
       clientID: configService.getOrThrow("FACEBOOK_CLIENT_ID"),
       clientSecret: configService.getOrThrow("FACEBOOK_CLIENT_SECRET"),
       callbackURL: configService.getOrThrow("FACEBOOK_CALLBACK_URL"),
-      scope: "email",
-      profileFields: ["emails", "name"]
+      scope: "email, public_profile",
+      profileFields: ["id", "emails", "name", "picture"]
     });
   }
 
@@ -21,17 +21,15 @@ export class FacebookStrategy extends PassportStrategy(Strategy, "facebook") {
     profile: Profile,
     done: (err: any, user: any, info?: any) => void
   ): Promise<any> {
-    const { name, emails } = profile;
+    const { name, id, photos } = profile;
     const user = {
-      email: emails[0].value,
-      firstName: name.givenName,
-      lastName: name.familyName
-    };
-    const payload = {
-      user,
-      accessToken
+      account: id,
+      username: name.givenName + " " + name.familyName,
+      avatar: photos[0].value
     };
 
-    done(null, payload);
+    done(null, user);
   }
+
+
 }

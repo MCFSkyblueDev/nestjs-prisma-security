@@ -1,8 +1,6 @@
 import { Controller, Get, Query, UseInterceptors } from "@nestjs/common";
 import { UserService } from "./user.service";
 import { ApiTags } from "@nestjs/swagger";
-import { DefaultPageNumberPipe } from "@pipe/page-number.pipe";
-import { DefaultPageSizePipe } from "@pipe/page-size.pipe";
 import { PaginationInterceptor } from "@interceptor/pagination.interceptor";
 
 
@@ -24,12 +22,17 @@ export class UserController {
     return this.userService.users({
       // cursor: { id: parseInt(cursor, 10) } : undefined,
       where: email && email.trim() !== "" ? {
-        email: {
+        account: {
           contains: email
         }
       } : undefined,
       orderBy: orderBy === "name" || orderBy === "id" ? { [orderBy]: "asc" } : undefined
     });
+  }
+
+  @Get("/get")
+  async getSomething(){
+    return "GET";
   }
 
 }
