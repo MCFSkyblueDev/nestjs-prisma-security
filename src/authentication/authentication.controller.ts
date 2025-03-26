@@ -1,52 +1,107 @@
-import { Controller, Get, HttpStatus, Post, Req, Res, UseGuards } from "@nestjs/common";
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Get,
+  HttpException,
+  Post,
+  Req,
+  Res,
+  UnauthorizedException,
+  UseGuards
+} from "@nestjs/common";
 import { AuthenticationService } from "./authentication.service";
-import { AuthGuard } from "@nestjs/passport";
-import { Request } from "express";
-import { ApiTags } from "@nestjs/swagger";
-import { UserService } from "@model/user/user.service";
-import { User } from "@prisma/client";
-
+import { ApiBearerAuth, ApiTags } from "@nestjs/swagger";
+import { Request, Response } from "express";
+import { JwtAuthGuard } from "@guard/jwt-auth.guard";
+import { CsrfService } from "@service/csrf/csrf.service";
+import { CsrfGuard } from "@guard/csrf.guard";
 @Controller("auth")
 @ApiTags("Authentication")
 export class AuthenticationController {
-  constructor(private readonly authenticationService: AuthenticationService, private readonly userService: UserService) {
+  constructor(private readonly authenticationService: AuthenticationService, , private readonly csrfService: CsrfService) {
   }
 
-  @Get("/facebook")
-  @UseGuards(AuthGuard("facebook"))
-  async facebookLogin(): Promise<any> {
-    return HttpStatus.OK;
+  @Post("login")
+  async login(@Body() { credential }: { credential: string }, @Res() res: Response) {
+    const result = await this.authenticationService.login(credential);
+    if (result instanceof HttpException) {
+      throw result;
+    }
+    res.cookie("auth_token", result.token, {
+      httpOnly: true,
+      maxAge: 3600000 * 24 * 7, // 7 days
+      sameSite: "strict",  // Protects against CSRF
+      secure: process.env.NODE_ENV === "production", // HTTPS only in production
+      signed: true
+    });
+    return res.json({ message: "Logged in successfully" });
   }
 
-  @Get("/facebook/redirect")
-  @UseGuards(AuthGuard("facebook"))
-  async facebookLoginRedirect(@Req() req: Request): Promise<any> {
-    const userInfo: User = await this.userService.userLogin({ ...req.user, type: "facebook" } as User);
-    return { token: await this.authenticationService.generateJwt(userInfo) };
+  @Post("logout")
+  @UseGuards(CsrfGuard, JwtAuthGuard)
+  logout(@Res() res: Response) {
+    try {
+      // Clear the cookie
+      res.clearCookie("auth_token", {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
+        signed: true
+      });
+
+      return res.json({ message: "Logged out successfully" });
+    } catch (error) {
+      console.log(error)
+      throw new BadRequestException("Logout failed, please try again");
+    }
   }
 
-  @Get("/google")
-  @UseGuards(AuthGuard("google"))
-  async googleLogin(): Promise<any> {
-    return HttpStatus.OK;
+  @Get("csrf-token")
+  getCsrfToken(@Req() req: Request, @Res() res: Response) {
+    let secret = req.signedCookies["csrf_secret"];
+    if (!secret) {
+      secret = this.csrfService.generateSecret();
+      res.cookie("csrf_secret", secret, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
+        signed: true,
+        // maxAge: 1000 * 60 * 60 * 24 * 7 // 7-day expiry
+      });
+    }
+    const token = this.csrfService.generateToken(secret);
+    res.json({ csrfToken: token });
   }
 
-  @Get("/google/redirect")
-  @UseGuards(AuthGuard("google"))
-  async googleLoginRedirect(@Req() req: Request): Promise<any> {
-    const userInfo: User = await this.userService.userLogin({ ...req.user, type: "google" } as User);
-    return { token: await this.authenticationService.generateJwt(userInfo) };
+  @Get("check-cookie")
+  checkCookie(@Req() req: Request) {
+    const result = function() {
+      try {
+        if (req.signedCookies?.["auth_token"]) {
+          return {
+            exists: true
+          };
+        }
+        return new UnauthorizedException("This cookie is not authorized");
+      } catch (error) {
+        return new BadRequestException(error?.message);
+      }
+    }();
+    if (result instanceof HttpException) throw result;
+    return result;
   }
 
-  // @Post("logout")
-  // logout(@Req() req: Request) {
-  //   req.session.destroy(() => {
-  //     return "Logged out successfully";
-  //   });
-  // }
-
-  @Get("/get")
-  async getSomething() {
-    return "GET";
+  @Get("check-role")
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  async checkRole(@Req() req: Request) {
+    const user: any = req.user;
+    const result = await this.authenticationService.checkRole(+user.id);
+    if (result instanceof HttpException) {
+      throw result;
+    }
+    return result;
   }
+
 }

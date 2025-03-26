@@ -1,7 +1,9 @@
-import { Controller, Get, Query, UseInterceptors } from "@nestjs/common";
+import { Controller, Get, Query, UseGuards, UseInterceptors } from "@nestjs/common";
 import { UserService } from "./user.service";
 import { ApiTags } from "@nestjs/swagger";
 import { PaginationInterceptor } from "@interceptor/pagination.interceptor";
+import { JwtAuthGuard } from "@guard/jwt-auth.guard";
+import { CsrfGuard } from "@guard/csrf.guard";
 
 
 
@@ -12,7 +14,7 @@ export class UserController {
   }
 
   @Get()
-  // @UseGuards(JwtAuthGuard)
+  @UseGuards(CsrfGuard,JwtAuthGuard)
   @UseInterceptors(PaginationInterceptor)
   async getAllUser(@Query("pageNumber") _pageNumber?: string,
                    @Query("pageSize") _pageSize?: string,
@@ -30,9 +32,5 @@ export class UserController {
     });
   }
 
-  @Get("/get")
-  async getSomething(){
-    return "GET";
-  }
 
 }
