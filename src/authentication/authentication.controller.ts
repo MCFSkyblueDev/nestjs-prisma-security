@@ -19,7 +19,7 @@ import { CsrfGuard } from "@guard/csrf.guard";
 @Controller("auth")
 @ApiTags("Authentication")
 export class AuthenticationController {
-  constructor(private readonly authenticationService: AuthenticationService, , private readonly csrfService: CsrfService) {
+  constructor(private readonly authenticationService: AuthenticationService, private readonly csrfService: CsrfService) {
   }
 
   @Post("login")
